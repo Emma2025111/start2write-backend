@@ -1,6 +1,6 @@
-import env from "../config/env.js";
-import Admin from "../models/Admin.js";
-import { hashPassword } from "../utils/password.js";
+import env from "../config/env";
+import Admin from "../models/Admin";
+import { hashPassword } from "../utils/password";
 
 export async function ensureDefaultAdmin(): Promise<void> {
   const existingAdmin = await Admin.findOne({ email: env.adminEmail });

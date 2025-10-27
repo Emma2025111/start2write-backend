@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
 import createHttpError from "http-errors";
-import { verifyAdminJwt } from "../utils/jwt.js";
+import { verifyAdminJwt } from "../utils/jwt";
 
 declare module "express-session" {
   interface SessionData {

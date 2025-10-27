@@ -6,17 +6,18 @@ import morgan from "morgan";
 import session from "express-session";
 import MongoStore from "connect-mongo";
 import cookieParser from "cookie-parser";
-import env from "./config/env.js";
-import { connectDatabase } from "./config/database.js";
-import { ensureDefaultAdmin } from "./services/adminService.js";
-import authRoutes from "./routes/authRoutes.js";
-import adminRoutes from "./routes/adminRoutes.js";
-import publicRoutes from "./routes/publicRoutes.js";
-import errorHandler from "./middleware/errorHandler.js";
+import env from "./config/env";
+import { connectDatabase } from "./config/database";
+import { ensureDefaultAdmin } from "./services/adminService";
+import authRoutes from "./routes/authRoutes";
+import adminRoutes from "./routes/adminRoutes";
+import publicRoutes from "./routes/publicRoutes";
+import errorHandler from "./middleware/errorHandler";
 
-async function bootstrap() {
-  await connectDatabase();
-  await ensureDefaultAdmin();
+function bootstrap() {
+  // Connect to database (async, but not awaited for serverless)
+  connectDatabase();
+  ensureDefaultAdmin();
 
   const app = express();
 
@@ -63,20 +64,27 @@ async function bootstrap() {
     res.json({ status: "ok" });
   });
 
+  app.get("/", (_req, res) => {
+    res.json({ message: "Start2Write API", version: "1.0.0" });
+  });
+
   app.use("/api/public", publicRoutes);
   app.use("/api/auth", authRoutes);
   app.use("/api/admin", adminRoutes);
 
   app.use(errorHandler);
 
+  return app;
+}
+
+const app = bootstrap();
+
+export default app;
+
+if (!process.env.VERCEL) {
+  // For local development
   app.listen(env.port, () => {
     // eslint-disable-next-line no-console
     console.log(`API ready on http://localhost:${env.port}`);
   });
 }
-
-bootstrap().catch((error) => {
-  // eslint-disable-next-line no-console
-  console.error("Failed to start server", error);
-  process.exit(1);
-});

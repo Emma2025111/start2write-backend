@@ -1,14 +1,14 @@
 import type { Request, Response } from "express";
 import createHttpError from "http-errors";
 import { z } from "zod";
-import env from "../config/env.js";
-import Admin from "../models/Admin.js";
-import OtpToken from "../models/OtpToken.js";
-import { updateAdminPassword, createAdmin } from "../services/adminService.js";
-import { deliverOtp, generateOtp, hashOtp } from "../services/otpService.js";
-import { verifyPassword } from "../utils/password.js";
-import { signAdminJwt } from "../utils/jwt.js";
-import asyncHandler from "../utils/asyncHandler.js";
+import env from "../config/env";
+import Admin from "../models/Admin";
+import OtpToken from "../models/OtpToken";
+import { updateAdminPassword, createAdmin } from "../services/adminService";
+import { deliverOtp, generateOtp, hashOtp } from "../services/otpService";
+import { verifyPassword } from "../utils/password";
+import { signAdminJwt } from "../utils/jwt";
+import asyncHandler from "../utils/asyncHandler";
 
 declare module "express-session" {
   interface SessionData {

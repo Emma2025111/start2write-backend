@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { createFeedback } from "../controllers/feedbackController.js";
+import { createFeedback } from "../controllers/feedbackController";
 
 const router = Router();
 

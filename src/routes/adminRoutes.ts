@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { feedbackStats, listFeedback, exportFeedback, deleteFeedback } from "../controllers/feedbackController.js";
-import { requireAdminAuth } from "../middleware/authMiddleware.js";
+import { feedbackStats, listFeedback, exportFeedback, deleteFeedback } from "../controllers/feedbackController";
+import { requireAdminAuth } from "../middleware/authMiddleware";
 
 const router = Router();
 

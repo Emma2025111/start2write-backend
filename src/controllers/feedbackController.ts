@@ -2,8 +2,8 @@ import type { Request, Response } from "express";
 import { Parser as Json2CsvParser } from "json2csv";
 import ExcelJS from "exceljs";
 import type { FilterQuery } from "mongoose";
-import asyncHandler from "../utils/asyncHandler.js";
-import Feedback, { type FeedbackDocument } from "../models/Feedback.js";
+import asyncHandler from "../utils/asyncHandler";
+import Feedback, { type FeedbackDocument } from "../models/Feedback";
 
 const feedbackSchema = {
   easeOfUse: true,
