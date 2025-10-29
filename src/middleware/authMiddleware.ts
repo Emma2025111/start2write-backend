@@ -2,12 +2,6 @@ import type { NextFunction, Request, Response } from "express";
 import createHttpError from "http-errors";
 import { verifyAdminJwt } from "../utils/jwt";
 
-declare module "express-session" {
-  interface SessionData {
-    adminId?: string;
-  }
-}
-
 declare global {
   namespace Express {
     interface Request {
@@ -17,16 +11,15 @@ declare global {
 }
 
 export function requireAdminAuth(req: Request, _res: Response, next: NextFunction): void {
-  const token = req.cookies?.admin_token as string | undefined;
-  if (!token || !req.session?.adminId) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return next(createHttpError(401, "Authentication required"));
   }
 
+  const token = authHeader.substring(7); // Remove "Bearer " prefix
+
   try {
     const { adminId } = verifyAdminJwt(token);
-    if (adminId !== req.session.adminId) {
-      throw createHttpError(401, "Session mismatch");
-    }
     req.adminId = adminId;
     next();
   } catch (error) {

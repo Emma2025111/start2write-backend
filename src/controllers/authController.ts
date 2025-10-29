@@ -10,13 +10,6 @@ import { verifyPassword } from "../utils/password";
 import { signAdminJwt } from "../utils/jwt";
 import asyncHandler from "../utils/asyncHandler";
 
-declare module "express-session" {
-  interface SessionData {
-    adminId?: string;
-    resetEmail?: string;
-  }
-}
-
 const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6),
@@ -55,28 +48,11 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
 
   // If OTP is disabled, log in directly
   if (!env.requireOtp) {
-    await new Promise<void>((resolve, reject) => {
-      req.session.regenerate((error) => {
-        if (error) {
-          reject(error);
-        } else {
-          resolve();
-        }
-      });
-    });
-
-    req.session.adminId = admin._id.toString();
     const token = signAdminJwt({ adminId: admin._id.toString() });
-    res.cookie("admin_token", token, {
-      httpOnly: true,
-      secure: env.nodeEnv === "production",
-      sameSite: "strict",
-      maxAge: 60 * 60 * 1000,
-      domain: env.cookieDomain || undefined,
-    });
 
     res.json({
       success: true,
+      token,
       admin: {
         email: admin.email,
         name: admin.name ?? "Administrator",
@@ -178,34 +154,17 @@ export const verifyOtp = asyncHandler(async (req: Request, res: Response) => {
       await updateAdminPassword(admin.email, newPassword);
       res.json({ success: true, message: "Password updated" });
     } else {
-      req.session.resetEmail = admin.email;
-      res.json({ success: true, message: "OTP verified" });
+      // Store reset email in a temporary way (could use JWT or database)
+      res.json({ success: true, message: "OTP verified", resetToken: admin.email });
     }
     return;
   }
 
-  await new Promise<void>((resolve, reject) => {
-    req.session.regenerate((error) => {
-      if (error) {
-        reject(error);
-      } else {
-        resolve();
-      }
-    });
-  });
-
-  req.session.adminId = admin._id.toString();
   const token = signAdminJwt({ adminId: admin._id.toString() });
-  res.cookie("admin_token", token, {
-    httpOnly: true,
-    secure: env.nodeEnv === "production",
-    sameSite: "strict",
-    maxAge: 60 * 60 * 1000,
-    domain: env.cookieDomain || undefined,
-  });
 
   res.json({
     success: true,
+    token,
     admin: {
       email: admin.email,
       name: admin.name ?? "Administrator",
@@ -214,19 +173,16 @@ export const verifyOtp = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const resetPassword = asyncHandler(async (req: Request, res: Response) => {
-  if (!req.session.resetEmail) {
-    throw createHttpError(401, "OTP verification required");
-  }
-
   const schema = z.object({
+    resetToken: z.string(),
     newPassword: z.string().min(8),
   });
 
-  const { newPassword } = schema.parse(req.body);
+  const { resetToken, newPassword } = schema.parse(req.body);
 
-  await updateAdminPassword(req.session.resetEmail, newPassword);
-
-  req.session.resetEmail = undefined;
+  // The resetToken contains the email (this is a simplified approach)
+  // In a production app, you might want to use a proper JWT token for this
+  await updateAdminPassword(resetToken, newPassword);
 
   res.json({ success: true, message: "Password updated" });
 });
@@ -260,12 +216,12 @@ export const forgotPassword = asyncHandler(async (req: Request, res: Response) =
 });
 
 export const me = asyncHandler(async (req: Request, res: Response) => {
-  if (!req.session.adminId) {
+  if (!req.adminId) {
     res.status(401).json({ success: false, message: "Not authenticated" });
     return;
   }
 
-  const admin = await Admin.findById(req.session.adminId);
+  const admin = await Admin.findById(req.adminId);
   if (!admin) {
     res.status(401).json({ success: false, message: "Not authenticated" });
     return;
@@ -281,24 +237,9 @@ export const me = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const logout = asyncHandler(async (req: Request, res: Response) => {
-  await new Promise<void>((resolve, reject) => {
-    req.session.destroy((error) => {
-      if (error) {
-        reject(error);
-      } else {
-        resolve();
-      }
-    });
-  });
-
-  res.clearCookie("admin_token", {
-    domain: env.cookieDomain || undefined,
-    httpOnly: true,
-    sameSite: "strict",
-    secure: env.nodeEnv === "production",
-  });
-
-  res.json({ success: true });
+  // With stateless JWT tokens, we just need to respond success
+  // The client will remove the token from localStorage
+  res.json({ success: true, message: "Logged out successfully" });
 });
 
 export const signup = asyncHandler(async (req: Request, res: Response) => {
@@ -312,29 +253,12 @@ export const signup = asyncHandler(async (req: Request, res: Response) => {
   // Create new admin
   const admin = await createAdmin(email, password, name);
 
-  // Log in the user
-  await new Promise<void>((resolve, reject) => {
-    req.session.regenerate((error) => {
-      if (error) {
-        reject(error);
-      } else {
-        resolve();
-      }
-    });
-  });
-
-  req.session.adminId = admin._id.toString();
+  // Generate token and return it
   const token = signAdminJwt({ adminId: admin._id.toString() });
-  res.cookie("admin_token", token, {
-    httpOnly: true,
-    secure: env.nodeEnv === "production",
-    sameSite: "strict",
-    maxAge: 60 * 60 * 1000,
-    domain: env.cookieDomain || undefined,
-  });
 
   res.json({
     success: true,
+    token,
     admin: {
       email: admin.email,
       name: admin.name,

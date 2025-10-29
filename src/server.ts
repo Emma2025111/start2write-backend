@@ -3,9 +3,6 @@ import helmet from "helmet";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
 import morgan from "morgan";
-import session from "express-session";
-import MongoStore from "connect-mongo";
-import cookieParser from "cookie-parser";
 import env from "./config/env";
 import { connectDatabase } from "./config/database";
 import { ensureDefaultAdmin } from "./services/adminService";
@@ -26,39 +23,19 @@ function bootstrap() {
   app.use(helmet());
   app.use(
     cors({
-      origin: env.clientUrl,
-      credentials: true,
+      origin: "*", // Allow requests from any origin
+      credentials: false, // No need for credentials with token-based auth
     })
   );
   app.use(morgan(env.nodeEnv === "production" ? "combined" : "dev"));
   app.use(express.json({ limit: "1mb" }));
   app.use(express.urlencoded({ extended: true }));
-  app.use(cookieParser());
 
   const limiter = rateLimit({
     windowMs: env.rateLimitWindowMs,
     max: env.rateLimitMax,
   });
   app.use("/api/", limiter);
-
-  app.use(
-    session({
-      secret: env.sessionSecret,
-      resave: false,
-      saveUninitialized: false,
-      cookie: {
-        httpOnly: true,
-        secure: env.nodeEnv === "production",
-        sameSite: "strict",
-        domain: env.cookieDomain || undefined,
-        maxAge: 60 * 60 * 1000,
-      },
-      store: MongoStore.create({
-        mongoUrl: env.mongoUri,
-        collectionName: "sessions",
-      }),
-    })
-  );
 
   app.get("/health", (_req, res) => {
     res.json({ status: "ok" });

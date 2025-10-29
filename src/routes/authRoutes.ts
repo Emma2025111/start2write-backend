@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { forgotPassword, login, logout, me, resendOtp, resetPassword, signup, verifyOtp } from "../controllers/authController";
+import { requireAdminAuth } from "../middleware/authMiddleware";
 
 const router = Router();
 
@@ -10,6 +11,7 @@ router.post("/resend-otp", resendOtp);
 router.post("/forgot", forgotPassword);
 router.post("/reset-password", resetPassword);
 router.post("/logout", logout);
+router.use(requireAdminAuth);
 router.get("/me", me);
 
-export default router;
+export default router;
